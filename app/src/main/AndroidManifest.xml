@@ -14,11 +14,6 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Allow resolving KinoWatch's TV launcher intent on Android 11+. -->
-    <queries>
-        <package android:name="watch.kino" />
-    </queries>
-
     <application
         android:allowBackup="true"
         android:banner="@mipmap/ic_banner"
@@ -36,19 +31,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Optional HOME entry point: forwards Home/boot to KinoWatch. -->
-        <activity
-            android:name=".KinoHomeActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
