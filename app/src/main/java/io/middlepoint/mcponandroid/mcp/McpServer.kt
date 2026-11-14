@@ -3,6 +3,7 @@ package io.middlepoint.mcponandroid.mcp
 import android.annotation.SuppressLint
 import android.content.Context
 import co.touchlab.kermit.Logger
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -16,6 +17,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.middlepoint.mcponandroid.utils.ADB
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
@@ -28,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+
+private class InvalidMcpAccessKey : RuntimeException()
 
 class McpServer private constructor(
   private val context: Context
@@ -62,8 +66,8 @@ class McpServer private constructor(
   private fun createBaseServer() =
     Server(
       Implementation(
-        name = "Android TV MCP",
-        version = "0.1.0",
+        name = "Android TV Admin MCP",
+        version = "0.2.0",
       ),
       ServerOptions(
         capabilities =
@@ -95,7 +99,36 @@ class McpServer private constructor(
             json(McpJson)
           }
 
+          // A new random key is generated on the TV on first launch.
+          // Every MCP request, including tool discovery, must present that key.
+          // The same URL works in Joey and other Streamable HTTP MCP clients.
+          install(StatusPages) {
+            exception<InvalidMcpAccessKey> { call, _ ->
+              call.respondText(
+                "MCP access denied. Use the authenticated connection URL shown on the TV.",
+                status = HttpStatusCode.Unauthorized,
+              )
+            }
+          }
+
+          install(createApplicationPlugin(name = "McpAccessGuard") {
+            onCall { call ->
+              if (call.request.path().startsWith("/mcp")) {
+                val queryKey = call.request.queryParameters["key"]
+                val headerKey = call.request.headers["X-MCP-Key"]
+                val bearer = call.request.headers[HttpHeaders.Authorization]
+                  ?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }
+                  ?.substringAfter(" ")
+                if (!McpAccess.accepts(context, queryKey ?: headerKey ?: bearer)) {
+                  throw InvalidMcpAccessKey()
+                }
+              }
+            }
+          })
+
           install(CORS) {
+            // The per-device access key is required even when CORS permits a client.
+            // Do not expose port 8081 to the internet; use only on a trusted LAN.
             anyHost()
             allowNonSimpleContentTypes = true
             allowHeader(HttpHeaders.ContentType)
