@@ -1,0 +1,58 @@
+name: Build TV Admin MCP
+
+on:
+  push:
+    branches:
+      - 'feature/tv-admin-mcp'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and publish authenticated Android TV admin MCP
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble Android TV Admin APK
+        run: bash ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TV-Admin-MCP-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Publish directly downloadable APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
+          test -n "$APK"
+          cp "$APK" TV-Admin-MCP.apk
+          if gh release view tv-admin-mcp-v1 >/dev/null 2>&1; then
+            gh release upload tv-admin-mcp-v1 TV-Admin-MCP.apk --clobber
+          else
+            gh release create tv-admin-mcp-v1 TV-Admin-MCP.apk \
+              --target "${{ github.sha }}" \
+              --title "TV Admin MCP — Direct ADB Control" \
+              --notes "Authenticated MCP server with direct ADB shell, file I/O, APK installation, package management, process inspection, diagnostics and backwards-compatible remote tools. The on-TV app generates its own 128-bit key. No root."
+          fi
