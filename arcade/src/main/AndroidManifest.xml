@@ -3,6 +3,10 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <uses-feature android:name="android.software.leanback" android:required="false"/>
     <queries>
+        <package android:name="watch.kino"/>
+        <package android:name="com.kinopub"/>
+        <package android:name="org.ppsspp.ppsspp"/>
+        <package android:name="com.retroarch"/>
         <intent>
             <action android:name="android.intent.action.MAIN"/>
             <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
@@ -14,7 +18,8 @@
     </queries>
     <application
         android:label="NEON ARCADE"
-        android:icon="@android:drawable/ic_media_play"
+        android:icon="@drawable/arcade_icon"
+        android:banner="@drawable/arcade_banner"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
