@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import co.touchlab.kermit.Logger
 import io.middlepoint.mcponandroid.R
+import io.middlepoint.mcponandroid.utils.ADB
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +31,18 @@ class McpService : Service() {
     super.onCreate()
     createNotificationChannel()
     initMcpServer()
+    // When Android starts KinoHomeActivity at boot, MainActivityViewModel
+    // has not run. Initialize ADB here so MCP commands can actually work.
+    serverScope.launch {
+      try {
+        val adb = ADB.getInstance(applicationContext)
+        if (adb.running.value != true) {
+          adb.initServer()
+        }
+      } catch (exception: Exception) {
+        logger.e(exception) { "Failed to initialize ADB from MCP service" }
+      }
+    }
     logger.d("McpService created")
   }
 
