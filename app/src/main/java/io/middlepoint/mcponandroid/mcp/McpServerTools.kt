@@ -3,10 +3,10 @@ package io.middlepoint.mcponandroid.mcp
 import android.content.Context
 import co.touchlab.kermit.Logger
 import io.middlepoint.mcponandroid.utils.ADB
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.ImageContent
-import io.modelcontextprotocol.kotlin.sdk.TextContent
-import io.modelcontextprotocol.kotlin.sdk.Tool
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -37,7 +37,7 @@ class McpServerTools(
             name = "launch_tv_app",
             description = "Launch a TV application by its package name",
             inputSchema =
-            Tool.Input(
+            ToolSchema(
                 properties =
                 buildJsonObject {
                     putJsonObject("app_package") {
@@ -49,7 +49,7 @@ class McpServerTools(
             ),
         ) { request ->
             val packageName =
-                request.arguments["app_package"]?.jsonPrimitive?.content
+                request.arguments?.get("app_package")?.jsonPrimitive?.content
                     ?: return@addTool CallToolResult(
                         content = listOf(TextContent("The 'app_package' parameter is required.")),
                     )
@@ -65,7 +65,7 @@ class McpServerTools(
         server.addTool(
             name = "get_installed_tv_apps",
             description = "Get a list of installed TV applications",
-            inputSchema = Tool.Input(),
+            inputSchema = ToolSchema(),
         ) {
             val result = adb.adbCommand("shell pm list packages -3")
             logger.d { "list-tv-apps: $result" }
@@ -84,7 +84,7 @@ class McpServerTools(
             name = "take_screenshot",
             description =
             "Takes a screenshot of the device screen and returns it as a base64 encoded image.",
-            inputSchema = Tool.Input(),
+            inputSchema = ToolSchema(),
         ) {
             val remotePath = "/sdcard/screenshot_${System.currentTimeMillis()}.png"
             val localFile = File(context.cacheDir, "screenshot.png")
@@ -142,7 +142,7 @@ class McpServerTools(
         server.addTool(
             name = "send_key_event",
             description = "Sends a key event to the device. A list of key codes can be found at https://developer.android.com/reference/android/view/KeyEvent",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("key_code") {
                         put("type", "string")
@@ -152,7 +152,7 @@ class McpServerTools(
                 required = listOf("key_code")
             )
         ) { request ->
-            val keyCode = request.arguments["key_code"]?.jsonPrimitive?.content
+            val keyCode = request.arguments?.get("key_code")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'key_code' parameter is required."))
                 )
@@ -174,7 +174,7 @@ class McpServerTools(
         server.addTool(
             name = "send_nav_key_event",
             description = "Sends a navigational key event to the device. Allowed values are 'up', 'down', 'left', 'right', 'select', 'back', and 'home'.",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("nav_key") {
                         put("type", "string")
@@ -187,7 +187,7 @@ class McpServerTools(
                 required = listOf("nav_key")
             )
         ) { request ->
-            val navKey = request.arguments["nav_key"]?.jsonPrimitive?.content
+            val navKey = request.arguments?.get("nav_key")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'nav_key' parameter is required."))
                 )
@@ -228,7 +228,7 @@ class McpServerTools(
         server.addTool(
             name = "type_text",
             description = "Types the given text into the current input field.",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("text") {
                         put("type", "string")
@@ -238,7 +238,7 @@ class McpServerTools(
                 required = listOf("text")
             )
         ) { request ->
-            val textToType = request.arguments["text"]?.jsonPrimitive?.content
+            val textToType = request.arguments?.get("text")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'text' parameter is required."))
                 )
@@ -263,7 +263,7 @@ class McpServerTools(
         server.addTool(
             name = "tap_screen",
             description = "Taps the screen at the given x and y coordinates.",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("x") {
                         put("type", "integer")
@@ -277,11 +277,11 @@ class McpServerTools(
                 required = listOf("x", "y")
             )
         ) { request ->
-            val x = request.arguments["x"]?.jsonPrimitive?.content?.toIntOrNull()
+            val x = request.arguments?.get("x")?.jsonPrimitive?.content?.toIntOrNull()
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'x' parameter is required and must be an integer."))
                 )
-            val y = request.arguments["y"]?.jsonPrimitive?.content?.toIntOrNull()
+            val y = request.arguments?.get("y")?.jsonPrimitive?.content?.toIntOrNull()
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'y' parameter is required and must be an integer."))
                 )

@@ -23,7 +23,7 @@ By leveraging ADB (Android Debug Bridge), it allows local network control of you
 - MCP server running on Android TV devices.
 - Works with the **MCP Kotlin SDK 0.7.2** (official SDK).
 - Local network device control via LLM clients.
-- Current communication method: **SSE (deprecated)**.
+- Current communication method: **Streamable HTTP** (endpoint `/mcp`, port `8081`).
 
 ## Exposed MCP Tools
 
@@ -43,7 +43,7 @@ The MCP server currently supports the following tools:
 2. Ensure **ADB debugging** is enabled and working.
 3. Launch the app — it will display the **MCP Ready** screen with:
     - Device details
-    - MCP server address to connect to
+    - MCP server address to connect to, such as `http://192.168.2.123:8081/mcp`
 4. On your LLM client (e.g., Goose, Claude Desktop):
     - Create a new connector/extension.
     - Enter the server address from your TV.
@@ -64,3 +64,9 @@ Contributions are very welcome!
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](./LICENSE) file for details.
+
+## iPhone client (Joey)
+
+Use the **Streamable HTTP** endpoint shown by the Android TV app: `http://<TV-LAN-IP>:8081/mcp`.
+The old `/sse` address is not compatible with Joey's Streamable HTTP MCP client.
+Keep the TV and phone on the same trusted Wi-Fi/LAN; never expose port `8081` to the public internet. This server provides remote control of the TV without its own authentication layer.

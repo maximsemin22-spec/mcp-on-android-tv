@@ -1,0 +1,49 @@
+name: Build KinoWatch Auto Home APK
+
+on:
+  push:
+    branches: ['feature/streamable-http-joey']
+    paths:
+      - 'kinohome/**'
+      - 'settings.gradle.kts'
+      - '.github/workflows/build-kinohome.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build lightweight home APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        shell: bash
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build KinoWatch HOME APK
+        run: bash ./gradlew :kinohome:assembleDebug --stacktrace --no-daemon
+
+      - name: Upload KinoWatch HOME APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kinohome-debug-apk
+          path: kinohome/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7

@@ -14,7 +14,7 @@ kermit = "2.0.8"
 androidx-navigation-compose= "2.9.1"
 androidx-lifecycle = "2.9.4"
 smoothMotion = "1.0.1"
-mcpVersion = "0.7.4"
+mcpVersion = "0.10.0"
 ktor = "3.3.1"
 ktlint = "13.1.0"
 
@@ -48,6 +48,7 @@ ktor-server-sse = { group = "io.ktor", name = "ktor-server-sse", version.ref = "
 ktor-server-cors = { group = "io.ktor", name = "ktor-server-cors", version.ref = "ktor" }
 ktor-server-websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
 ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktor" }
+ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 

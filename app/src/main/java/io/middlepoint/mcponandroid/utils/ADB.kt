@@ -510,11 +510,20 @@ class ADB(
      * Run an ADB command and get the output.
      */
     fun adbCommand(command: String): String {
-        val process = adb(false, command.split(" "))
+        // The ADB server can see both the TV's local wireless-debugging connection
+        // and other connected devices. Always supply an explicit target.
+        val devices = getDevices()
+        val targetDevice =
+            devices.firstOrNull { it.startsWith("localhost:") || it.startsWith("127.0.0.1:") }
+                ?: devices.firstOrNull { !it.contains("emulator") }
+                ?: devices.firstOrNull()
+                ?: return "Error: No connected ADB devices found"
+
+        val process = adb(false, listOf("-s", targetDevice) + command.split(" "))
         val output = process.inputStream.bufferedReader().use { it.readText() }
         val errors = process.errorStream.bufferedReader().use { it.readText() }
         val exitCode = process.waitFor()
-        logger.d { "exitCode: $exitCode" }
+        logger.d { "ADB target: $targetDevice; exitCode: $exitCode" }
         return if (exitCode == 0) output else "Error ($exitCode): $errors"
     }
 
