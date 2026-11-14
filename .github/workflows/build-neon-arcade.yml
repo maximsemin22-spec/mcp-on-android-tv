@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -39,3 +39,19 @@ jobs:
           path: arcade/build/outputs/apk/debug/*.apk
           retention-days: 7
           if-no-files-found: error
+
+      - name: Publish public APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(find arcade/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
+          test -n "$APK"
+          cp "$APK" NeonArcade-AndroidTV.apk
+          if gh release view neon-arcade-v1 >/dev/null 2>&1; then
+            gh release upload neon-arcade-v1 NeonArcade-AndroidTV.apk --clobber
+          else
+            gh release create neon-arcade-v1 NeonArcade-AndroidTV.apk \
+              --title "NEON ARCADE — Android TV Game Station" \
+              --notes "Original offline arcade games: Snake, Pong and Breakout. TV remote and gamepad controls. Includes apps, KinoWatch, and KinoPub shortcuts. Does not change default Android TV launcher automatically." \
+              --target "${{ github.sha }}"
+          fi
