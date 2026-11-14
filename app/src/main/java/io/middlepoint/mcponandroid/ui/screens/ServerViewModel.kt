@@ -3,6 +3,7 @@ package io.middlepoint.mcponandroid.ui.screens
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.middlepoint.mcponandroid.mcp.McpAccess
 import io.middlepoint.mcponandroid.mcp.McpServer
 import io.middlepoint.mcponandroid.mcp.ServerState
 import io.middlepoint.mcponandroid.utils.DnsDiscover
@@ -27,14 +28,15 @@ class ServerViewModel(application: Application) : AndroidViewModel(application) 
         val serverAddress = if (isRunning) {
           val ipAddress = dnsDiscover.getLocalIpAddress()
           if (ipAddress != null) {
-            "http://$ipAddress:8081/mcp"
+            McpAccess.url(getApplication(), ipAddress)
           } else {
             null // Or some error/fallback address
           }
         } else {
           null
         }
-        _uiState.value = ServerState(isRunning = isRunning, serverAddress = serverAddress)
+        _uiState.value = ServerState(isRunning = isRunning, serverAddress = serverAddress,
+          authKey = if (isRunning) McpAccess.token(getApplication()) else null)
       }
       .launchIn(viewModelScope)
   }
