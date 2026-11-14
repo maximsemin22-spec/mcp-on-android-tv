@@ -2,5 +2,6 @@ package io.middlepoint.mcponandroid.mcp
 
 data class ServerState(
     val isRunning: Boolean = false,
-    val serverAddress: String? = null
+    val serverAddress: String? = null,
+    val authKey: String? = null
 )
