@@ -6,7 +6,13 @@ import co.touchlab.kermit.Logger
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.install
+import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.cio.CIO
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.path
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cors.routing.CORS
 import io.middlepoint.mcponandroid.utils.ADB
@@ -25,6 +31,8 @@ class McpServer private constructor(
 ) {
 
   private val _isRunning = MutableStateFlow(false)
+  private val _lastMcpRequest = MutableStateFlow("No MCP request received")
+  private val _lastMcpResponse = MutableStateFlow("No MCP response yet")
   val isRunning = _isRunning.asStateFlow()
 
   companion object {
@@ -95,6 +103,36 @@ class McpServer private constructor(
             allowMethod(HttpMethod.Delete)
             allowMethod(HttpMethod.Head)
             allowMethod(HttpMethod.Options)
+          }
+
+          // Local diagnostics for inspecting Joey's incoming MCP requests.
+          install(createApplicationPlugin(name = "McpRequestDiagnostics") {
+            onCall { call ->
+              if (call.request.path() == "/mcp") {
+                val accept = call.request.headers[HttpHeaders.Accept] ?: "<missing>"
+                val contentType = call.request.headers[HttpHeaders.ContentType] ?: "<missing>"
+                val session = if (call.request.headers["Mcp-Session-Id"] == null) "no" else "yes"
+                _lastMcpRequest.value =
+                  "\${call.request.httpMethod.value} /mcp | Accept=$accept | Content-Type=$contentType | Session=$session"
+                logger.d { "MCP incoming: \${_lastMcpRequest.value}" }
+              }
+            }
+            onCallRespond { call ->
+              if (call.request.path() == "/mcp") {
+                _lastMcpResponse.value = "HTTP \${call.response.status()?.value ?: "unknown"}"
+                logger.d { "MCP response: \${_lastMcpResponse.value}" }
+              }
+            }
+          })
+
+          routing {
+            get("/health") {
+              call.respondText(
+                "Android TV MCP server is running\n" +
+                  "Last request: \${_lastMcpRequest.value}\n" +
+                  "Last response: \${_lastMcpResponse.value}\n"
+              )
+            }
           }
 
           mcpStreamableHttp(path = "/mcp") { configureServer() }
