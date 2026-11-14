@@ -5,6 +5,7 @@ import android.content.Context
 import co.touchlab.kermit.Logger
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.cio.CIO
@@ -15,8 +16,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.middlepoint.mcponandroid.utils.ADB
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.McpJson
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
@@ -88,6 +91,10 @@ class McpServer private constructor(
     try {
       withContext(Dispatchers.IO) {
         embeddedServer(CIO, host = "0.0.0.0", port = port) {
+          install(ContentNegotiation) {
+            json(McpJson)
+          }
+
           install(CORS) {
             anyHost()
             allowNonSimpleContentTypes = true
