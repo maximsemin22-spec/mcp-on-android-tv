@@ -506,25 +506,87 @@ class ADB(
         }
     }
 
+    data class ExecResult(
+        val exitCode: Int,
+        val output: String,
+        val timedOut: Boolean = false,
+    ) {
+        fun formatted(): String =
+            "exit_code=$exitCode; timed_out=$timedOut\\n$output"
+    }
+
     /**
-     * Run an ADB command and get the output.
+     * Execute an ADB command using a strict localhost target.
+     * Never route remote admin requests to other devices connected to this ADB server.
+     * Commands are passed as argv; callers do not need to split or quote host-side paths.
+     */
+    fun execAdb(
+        arguments: List<String>,
+        timeoutMs: Long = 15_000,
+        outputLimit: Int = 128 * 1024,
+    ): ExecResult {
+        val serial = getDevices().firstOrNull {
+            it.startsWith("localhost:") || it.startsWith("127.0.0.1:")
+        } ?: return ExecResult(-1, "Local ADB pairing is not connected")
+
+        val process = try {
+            ProcessBuilder(listOf(adbPath, "-s", serial) + arguments)
+                .directory(context.filesDir)
+                .redirectErrorStream(true)
+                .apply {
+                    environment()["HOME"] = context.filesDir.path
+                    environment()["TMPDIR"] = context.cacheDir.path
+                }
+                .start()
+        } catch (ex: Exception) {
+            return ExecResult(-1, "Failed to execute ADB: ${ex.message}")
+        }
+
+        val buffer = java.io.ByteArrayOutputStream()
+        val reader = Thread {
+            try {
+                process.inputStream.use { input ->
+                    val chunk = ByteArray(4096)
+                    while (true) {
+                        val size = input.read(chunk)
+                        if (size < 0) break
+                        synchronized(buffer) {
+                            val remaining = outputLimit - buffer.size()
+                            if (remaining > 0) buffer.write(chunk, 0, minOf(remaining, size))
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Process may be killed on timeout; partial output is still useful.
+            }
+        }
+        reader.isDaemon = true
+        reader.start()
+
+        val finished = try {
+            process.waitFor(timeoutMs.coerceIn(1_000, 60_000), TimeUnit.MILLISECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+
+        if (!finished) process.destroyForcibly()
+        reader.join(1500)
+        val code = if (finished) process.exitValue() else -2
+        val output = synchronized(buffer) { buffer.toString(Charsets.UTF_8.name()) }
+        return ExecResult(code, output, timedOut = !finished)
+    }
+
+    fun shellCommand(command: String, timeoutMs: Long = 15_000): ExecResult =
+        execAdb(listOf("shell", command), timeoutMs)
+
+    /**
+     * Backwards-compatible command wrapper for the existing seven Joey tools.
+     * New tools use execAdb() so paths and quoted arguments are preserved.
      */
     fun adbCommand(command: String): String {
-        // The ADB server can see both the TV's local wireless-debugging connection
-        // and other connected devices. Always supply an explicit target.
-        val devices = getDevices()
-        val targetDevice =
-            devices.firstOrNull { it.startsWith("localhost:") || it.startsWith("127.0.0.1:") }
-                ?: devices.firstOrNull { !it.contains("emulator") }
-                ?: devices.firstOrNull()
-                ?: return "Error: No connected ADB devices found"
-
-        val process = adb(false, listOf("-s", targetDevice) + command.split(" "))
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        val errors = process.errorStream.bufferedReader().use { it.readText() }
-        val exitCode = process.waitFor()
-        logger.d { "ADB target: $targetDevice; exitCode: $exitCode" }
-        return if (exitCode == 0) output else "Error ($exitCode): $errors"
+        val r = execAdb(command.split(" ").filter { it.isNotBlank() })
+        return if (r.exitCode == 0) r.output else "Error (${r.exitCode}): ${r.output}"
     }
 
     /**
