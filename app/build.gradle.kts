@@ -66,7 +66,6 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel)
   implementation(libs.smoothmotion)
 
-  implementation(libs.mcp)
   implementation(libs.mcp.kotlin.server)
   implementation(libs.ktor.server.cio)
   implementation(libs.ktor.server.cors)

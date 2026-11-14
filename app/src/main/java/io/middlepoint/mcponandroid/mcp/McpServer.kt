@@ -10,11 +10,11 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cors.routing.CORS
 import io.middlepoint.mcponandroid.utils.ADB
-import io.modelcontextprotocol.kotlin.sdk.Implementation
-import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import io.modelcontextprotocol.kotlin.sdk.server.mcp
+import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,16 +66,16 @@ class McpServer private constructor(
     )
 
   /**
-   * Starts an SSE (Server Sent Events) MCP server using the Ktor framework and the specified port.
+   * Starts a Streamable HTTP MCP server using Ktor on the specified port.
    *
-   * The url can be accessed in the MCP inspector at [http://localhost:$port]
+   * The Streamable HTTP endpoint is available at [http://localhost:$port/mcp].
    *
-   * @param port The port number on which the SSE MCP server will listen for client connections.
+   * @param port The port number on which the Streamable HTTP MCP server will listen.
    * @return Unit This method does not return a value.
    */
-  suspend fun runSseMcpServerUsingKtorPlugin(port: Int) {
-    logger.d("Starting sse server on port $port")
-    logger.d("Use inspector to connect to the http://localhost:$port/sse")
+  suspend fun runStreamableHttpMcpServerUsingKtorPlugin(port: Int) {
+    logger.d("Starting Streamable HTTP MCP server on port $port")
+    logger.d("Use inspector to connect to the http://localhost:$port/mcp")
     _isRunning.value = true
     try {
       withContext(Dispatchers.IO) {
@@ -85,12 +85,19 @@ class McpServer private constructor(
             allowNonSimpleContentTypes = true
             allowHeader(HttpHeaders.ContentType)
             allowHeader(HttpHeaders.AcceptEncoding)
+            allowHeader(HttpHeaders.Accept)
+            allowHeader("Mcp-Session-Id")
+            allowHeader("Mcp-Protocol-Version")
+            exposeHeader("Mcp-Session-Id")
+            exposeHeader("Mcp-Protocol-Version")
             allowMethod(HttpMethod.Get)
+            allowMethod(HttpMethod.Post)
+            allowMethod(HttpMethod.Delete)
             allowMethod(HttpMethod.Head)
             allowMethod(HttpMethod.Options)
           }
 
-          mcp { return@mcp configureServer() }
+          mcpStreamableHttp(path = "/mcp") { configureServer() }
         }
           .start(wait = true)
       }

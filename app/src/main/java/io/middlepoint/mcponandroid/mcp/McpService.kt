@@ -36,7 +36,7 @@ class McpService : Service() {
   private fun initMcpServer() {
     mcpServer = McpServer.getInstance(applicationContext)
     serverScope.launch {
-      mcpServer.runSseMcpServerUsingKtorPlugin(8081)
+      mcpServer.runStreamableHttpMcpServerUsingKtorPlugin(8081)
     }
   }
 

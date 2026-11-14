@@ -27,7 +27,7 @@ class ServerViewModel(application: Application) : AndroidViewModel(application) 
         val serverAddress = if (isRunning) {
           val ipAddress = dnsDiscover.getLocalIpAddress()
           if (ipAddress != null) {
-            "http://$ipAddress:8081/sse"
+            "http://$ipAddress:8081/mcp"
           } else {
             null // Or some error/fallback address
           }
