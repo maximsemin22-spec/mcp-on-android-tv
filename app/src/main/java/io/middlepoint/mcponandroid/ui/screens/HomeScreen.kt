@@ -90,10 +90,22 @@ private fun HomeScreenContent(state: ServerState) {
         )
       }
       AnimatedVisibility(visible = state.isRunning, enter = fadeIn(), exit = fadeOut()) {
-        Text(
-          text = state.serverAddress ?: stringResource(id = R.string.address_not_available),
-          style = MaterialTheme.typography.bodyMedium
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          Text(
+            text = state.serverAddress ?: stringResource(id = R.string.address_not_available),
+            style = MaterialTheme.typography.bodyMedium
+          )
+          if (!state.authKey.isNullOrBlank()) {
+            Text(
+              text = "ADMIN ACCESS KEY: ${state.authKey}",
+              style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+              text = "Add ?key=YOUR_KEY to the MCP URL in Joey. Local trusted Wi-Fi only.",
+              style = MaterialTheme.typography.bodyMedium
+            )
+          }
+        }
       }
     }
   }
