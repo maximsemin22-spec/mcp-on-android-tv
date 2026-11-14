@@ -113,14 +113,14 @@ class McpServer private constructor(
                 val contentType = call.request.headers[HttpHeaders.ContentType] ?: "<missing>"
                 val session = if (call.request.headers["Mcp-Session-Id"] == null) "no" else "yes"
                 _lastMcpRequest.value =
-                  "\${call.request.httpMethod.value} /mcp | Accept=$accept | Content-Type=$contentType | Session=$session"
-                logger.d { "MCP incoming: \${_lastMcpRequest.value}" }
+                  "${call.request.httpMethod.value} /mcp | Accept=$accept | Content-Type=$contentType | Session=$session"
+                logger.d { "MCP incoming: ${_lastMcpRequest.value}" }
               }
             }
             onCallRespond { call ->
               if (call.request.path() == "/mcp") {
-                _lastMcpResponse.value = "HTTP \${call.response.status()?.value ?: "unknown"}"
-                logger.d { "MCP response: \${_lastMcpResponse.value}" }
+                _lastMcpResponse.value = "HTTP ${call.response.status()?.value ?: "unknown"}"
+                logger.d { "MCP response: ${_lastMcpResponse.value}" }
               }
             }
           })
@@ -129,8 +129,8 @@ class McpServer private constructor(
             get("/health") {
               call.respondText(
                 "Android TV MCP server is running\n" +
-                  "Last request: \${_lastMcpRequest.value}\n" +
-                  "Last response: \${_lastMcpResponse.value}\n"
+                  "Last request: ${_lastMcpRequest.value}\n" +
+                  "Last response: ${_lastMcpResponse.value}\n"
               )
             }
           }
