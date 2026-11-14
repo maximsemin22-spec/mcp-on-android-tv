@@ -1,0 +1,41 @@
+name: Build Neon Arcade for Android TV
+
+on:
+  push:
+    branches: ['feature/streamable-http-joey']
+    paths:
+      - 'arcade/**'
+      - 'settings.gradle.kts'
+      - '.github/workflows/build-neon-arcade.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Neon Arcade APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Assemble APK
+        run: bash ./gradlew :arcade:assembleDebug --stacktrace --no-daemon
+      - name: Publish APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeonArcade-AndroidTV-APK
+          path: arcade/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
