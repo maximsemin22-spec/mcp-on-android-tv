@@ -30,6 +30,7 @@ class McpServerTools(
         addSendNavKeyEventTool()
         addTypeTextTool()
         addTapScreenTool()
+        TvAdminTools(server, context, adb).registerTools()
     }
 
     private fun addLaunchTvAppTool() {
@@ -54,10 +55,12 @@ class McpServerTools(
                         content = listOf(TextContent("The 'app_package' parameter is required.")),
                     )
 
-            val result = adb.adbCommand("shell monkey -p $packageName 1")
-            logger.d { "launch_tv_app: $result" }
-
-            CallToolResult(content = listOf(TextContent("Launching $packageName succesfully")))
+            if (!packageName.matches(Regex("[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)+"))) {
+                return@addTool CallToolResult(content = listOf(TextContent("Invalid application package")))
+            }
+            val result = adb.shellCommand("monkey -p $packageName 1")
+            logger.d { "launch_tv_app exit=${result.exitCode}" }
+            CallToolResult(content = listOf(TextContent(result.formatted())))
         }
     }
 
@@ -156,6 +159,9 @@ class McpServerTools(
                 ?: return@addTool CallToolResult(
                     content = listOf(TextContent("The 'key_code' parameter is required."))
                 )
+            if (!keyCode.matches(Regex("KEYCODE_[A-Z0-9_]+"))) {
+                return@addTool CallToolResult(content = listOf(TextContent("Invalid key code")))
+            }
             val result = adb.adbCommand("shell input keyevent $keyCode")
             logger.d { "send_key_event: $result" }
             if (result.startsWith("Error")) {
@@ -244,7 +250,10 @@ class McpServerTools(
                 )
 
             val sanitizedText = textToType.replace(" ", "%s")
-            val result = adb.adbCommand("shell input text '$sanitizedText'")
+            val quoted = "'" + sanitizedText.replace("'", "'\\''") + "'"
+            val result = adb.shellCommand("input text $quoted").let {
+                if (it.exitCode == 0) it.output else "Error (${it.exitCode}): ${it.output}"
+            }
             logger.d { "type_text: $result" }
 
             if (result.startsWith("Error")) {
