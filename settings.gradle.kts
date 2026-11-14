@@ -23,4 +23,4 @@ dependencyResolutionManagement {
 rootProject.name = "mcp-on-android-tv"
 include(":app")
 include(":kinohome")
- 
+include(":arcade")
