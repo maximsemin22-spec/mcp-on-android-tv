@@ -36,14 +36,14 @@ class McpService : Service() {
   private fun initMcpServer() {
     mcpServer = McpServer.getInstance(applicationContext)
     serverScope.launch {
-      mcpServer.runStreamableHttpMcpServerUsingKtorPlugin(8081)
+      mcpServer.runStreamableHttpMcpServerUsingKtorPlugin(8082)
     }
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (!isForeground) {
       val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setContentTitle("MCP Server running")
+        .setContentTitle("TV Admin MCP 8082 running")
         .setSmallIcon(R.mipmap.ic_launcher)
         .build()
 
