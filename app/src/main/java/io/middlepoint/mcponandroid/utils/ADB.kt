@@ -515,6 +515,94 @@ class ADB(
             "exit_code=$exitCode; timed_out=$timedOut\\n$output"
     }
 
+    // ADB's wireless TLS port can change when Wireless debugging is restarted.
+    // Keep this recovery local to the TV and never connect to arbitrary LAN devices.
+    private val localReconnectLock = Any()
+    private var lastLocalReconnectMs = 0L
+
+    private fun readAdbOutput(arguments: List<String>, timeoutMs: Long = 5_000): String? {
+        val process = try {
+            ProcessBuilder(listOf(adbPath) + arguments)
+                .directory(context.filesDir)
+                .redirectErrorStream(true)
+                .apply {
+                    environment()["HOME"] = context.filesDir.path
+                    environment()["TMPDIR"] = context.cacheDir.path
+                }
+                .start()
+        } catch (e: Exception) {
+            logger.w { "Unable to start ADB command: ${e.message}" }
+            return null
+        }
+
+        return try {
+            if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly()
+                null
+            } else {
+                process.inputStream.bufferedReader().use { it.readText() }
+            }
+        } catch (e: InterruptedException) {
+            process.destroyForcibly()
+            Thread.currentThread().interrupt()
+            null
+        }
+    }
+
+    private fun readyLocalAdbSerial(): String? =
+        readAdbOutput(listOf("devices"))
+            ?.lineSequence()
+            ?.map { it.trim().split(Regex("\\s+")) }
+            ?.firstOrNull { columns ->
+                columns.size >= 2 &&
+                    columns[1] == "device" &&
+                    (columns[0].startsWith("localhost:") || columns[0].startsWith("127.0.0.1:"))
+            }
+            ?.firstOrNull()
+
+    /**
+     * Reconnect to THIS TV on the current wireless ADB port if the transport vanished.
+     * Do not attempt to pair without a code: Android requires explicit user pairing.
+     */
+    private fun ensureLocalAdbSerial(): String? {
+        readyLocalAdbSerial()?.let { return it }
+
+        return synchronized(localReconnectLock) {
+            readyLocalAdbSerial()?.let { return@synchronized it }
+
+            // Back off briefly when a client retries multiple MCP calls at once.
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastLocalReconnectMs < 2_000) return@synchronized null
+            lastLocalReconnectMs = now
+
+            val localIp = DnsDiscover.getInstance(context).getLocalIpAddress()
+            val ports = linkedSetOf<Int>()
+            // Prefer freshly advertised mDNS port, then fall back to startup discovery.
+            val mdns = readAdbOutput(listOf("mdns", "services")).orEmpty()
+            val endpointRegex = Regex("""((?:\d{1,3}\.){3}\d{1,3}):(\d{2,5})""")
+            for (line in mdns.lineSequence()) {
+                if (!line.contains("_adb-tls-connect._tcp")) continue
+                val match = endpointRegex.find(line) ?: continue
+                val address = match.groupValues[1]
+                if (address != localIp && address != "127.0.0.1") continue
+                val port = match.groupValues[2].toIntOrNull() ?: continue
+                if (port in 1..65535) ports.add(port)
+            }
+            DnsDiscover.adbPort?.takeIf { it in 1..65535 }?.let(ports::add)
+
+            for (port in ports) {
+                // Only loopback connections are allowed; mDNS is used just for port discovery.
+                readAdbOutput(listOf("connect", "localhost:$port"))
+                readyLocalAdbSerial()?.let {
+                    logger.d { "Local ADB reconnected on port $port" }
+                    return@synchronized it
+                }
+            }
+            logger.w { "Local ADB not connected; check Wireless debugging pairing" }
+            null
+        }
+    }
+
     /**
      * Execute an ADB command using a strict localhost target.
      * Never route remote admin requests to other devices connected to this ADB server.
@@ -525,9 +613,11 @@ class ADB(
         timeoutMs: Long = 15_000,
         outputLimit: Int = 128 * 1024,
     ): ExecResult {
-        val serial = getDevices().firstOrNull {
-            it.startsWith("localhost:") || it.startsWith("127.0.0.1:")
-        } ?: return ExecResult(-1, "Local ADB pairing is not connected")
+        val serial = ensureLocalAdbSerial()
+            ?: return ExecResult(
+                -1,
+                "Local ADB is not connected. Reconnect attempted; verify Wireless debugging pairing.",
+            )
 
         val process = try {
             ProcessBuilder(listOf(adbPath, "-s", serial) + arguments)
