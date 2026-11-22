@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">Mcp On Android</string>
+    <string name="app_name">TV Admin MCP</string>
 
     <string name="auto_shell_key">auto_shell</string>
     <string name="startup_command_key">startup_command</string>
     <string name="buffer_size_key">buffer_size</string>
     <string name="checking_device_setup">Checking Device Setup</string>
-    <string name="home_screen_title">MCP on Android TV</string>
+    <string name="home_screen_title">TV Admin MCP</string>
     <string name="indicator_color_label">Indicator Color</string>
     <string name="status_running">Running</string>
     <string name="status_not_running">Not Running</string>
