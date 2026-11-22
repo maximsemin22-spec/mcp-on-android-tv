@@ -2,7 +2,7 @@ name: Build Android TV APK
 
 on:
   push:
-    branches: [master, 'feature/streamable-http-joey']
+    branches: [master, 'feature/streamable-http-joey', 'fix/local-adb-reconnect']
   workflow_dispatch:
 
 permissions:
