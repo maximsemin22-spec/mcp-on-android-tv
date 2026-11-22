@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -48,3 +48,19 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish directly downloadable reconnect APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
+          test -n "$APK"
+          cp "$APK" TV-Admin-MCP-Reconnect.apk
+          if gh release view tv-admin-mcp-reconnect-v2 >/dev/null 2>&1; then
+            gh release upload tv-admin-mcp-reconnect-v2 TV-Admin-MCP-Reconnect.apk --clobber
+          else
+            gh release create tv-admin-mcp-reconnect-v2 TV-Admin-MCP-Reconnect.apk \
+              --target "${{ github.sha }}" \
+              --title "TV Admin MCP — Local ADB Reconnect (test build)" \
+              --notes "Test build with automatic loopback ADB reconnection. Install only after backing up the existing APK; debug signing may differ from the previous release. Compatible MCP URL remains on port 8081."
+          fi
