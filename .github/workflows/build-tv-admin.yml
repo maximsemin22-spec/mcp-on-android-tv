@@ -3,7 +3,7 @@ name: Build TV Admin MCP
 on:
   push:
     branches:
-      - 'feature/tv-admin-mcp'
+      - 'fix/admin-side-by-side'
   workflow_dispatch:
 
 permissions:
@@ -47,12 +47,12 @@ jobs:
         run: |
           APK=$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)
           test -n "$APK"
-          cp "$APK" TV-Admin-MCP.apk
-          if gh release view tv-admin-mcp-v1 >/dev/null 2>&1; then
-            gh release upload tv-admin-mcp-v1 TV-Admin-MCP.apk --clobber
+          cp "$APK" TV-Admin-MCP-Standalone.apk
+          if gh release view tv-admin-mcp-standalone-v1 >/dev/null 2>&1; then
+            gh release upload tv-admin-mcp-standalone-v1 TV-Admin-MCP-Standalone.apk --clobber
           else
-            gh release create tv-admin-mcp-v1 TV-Admin-MCP.apk \
+            gh release create tv-admin-mcp-standalone-v1 TV-Admin-MCP-Standalone.apk \
               --target "${{ github.sha }}" \
-              --title "TV Admin MCP — Direct ADB Control" \
-              --notes "Authenticated MCP server with direct ADB shell, file I/O, APK installation, package management, process inspection, diagnostics and backwards-compatible remote tools. The on-TV app generates its own 128-bit key. No root."
+              --title "TV Admin MCP — Independent Install" \
+              --notes "Standalone install with a distinct package (io.middlepoint.mcponandroid.admin) on port 8082. Authenticated MCP server with direct ADB shell, file I/O, APK installation, package management, process inspection, diagnostics and backwards-compatible remote tools. The on-TV app generates its own 128-bit key. No root."
           fi
