@@ -11,11 +11,11 @@ android {
   compileSdk = 36
 
   defaultConfig {
-    applicationId = "io.middlepoint.mcponandroid"
+    applicationId = "io.middlepoint.mcponandroid.admin"
     minSdk = 26
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.1-standalone"
 
   }
 
