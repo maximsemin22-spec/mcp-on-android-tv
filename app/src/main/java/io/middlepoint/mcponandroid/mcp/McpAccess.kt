@@ -32,5 +32,5 @@ object McpAccess {
     }
 
     fun url(context: Context, ip: String): String =
-        "http://$ip:8081/mcp?key=${token(context)}"
+        "http://$ip:8082/mcp?key=${token(context)}"
 }
